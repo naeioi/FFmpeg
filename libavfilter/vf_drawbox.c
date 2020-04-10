@@ -271,6 +271,37 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *frame)
     return ff_filter_frame(inlink->dst->outputs[0], frame);
 }
 
+static int drawbox_process_command(AVFilterContext *ctx, const char *cmd, const char *args,
+                           char *res, int res_len, int flags)
+{
+    DrawBoxContext *s = ctx->priv;
+    int ret;
+
+    if (   !strcmp(cmd, "x")         || !strcmp(cmd, "y")      
+        || !strcmp(cmd, "w")         || !strcmp(cmd, "h")
+        || !strcmp(cmd, "width")     || !strcmp(cmd, "height")
+        || !strcmp(cmd, "color")     || !strcmp(cmd, "c")
+        || !strcmp(cmd, "thickness") || !strcmp(cmd, "t")
+        || !strcmp(cmd, "replace")) {
+        
+        DrawBoxContext old_s = *s;
+
+        AVFilterLink *inlink  = ctx->inputs[0];
+
+        av_opt_set(s, cmd, args, 0);
+
+        if ((ret = config_input(inlink)) < 0) {
+            *s = old_s;
+            return ret;
+        }
+    }
+    else
+        ret = AVERROR(ENOSYS);
+    
+    return ret;
+}
+
+
 #define OFFSET(x) offsetof(DrawBoxContext, x)
 #define FLAGS AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_FILTERING_PARAM
 
@@ -322,6 +353,7 @@ AVFilter ff_vf_drawbox = {
     .inputs        = drawbox_inputs,
     .outputs       = drawbox_outputs,
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC,
+    .process_command = drawbox_process_command
 };
 #endif /* CONFIG_DRAWBOX_FILTER */
 
@@ -446,15 +478,15 @@ static const AVFilterPad drawgrid_outputs[] = {
 };
 
 AVFilter ff_vf_drawgrid = {
-    .name          = "drawgrid",
-    .description   = NULL_IF_CONFIG_SMALL("Draw a colored grid on the input video."),
-    .priv_size     = sizeof(DrawBoxContext),
-    .priv_class    = &drawgrid_class,
-    .init          = init,
-    .query_formats = query_formats,
-    .inputs        = drawgrid_inputs,
-    .outputs       = drawgrid_outputs,
-    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC,
+    .name            = "drawgrid",
+    .description     = NULL_IF_CONFIG_SMALL("Draw a colored grid on the input video."),
+    .priv_size       = sizeof(DrawBoxContext),
+    .priv_class      = &drawgrid_class,
+    .init            = init,
+    .query_formats   = query_formats,
+    .inputs          = drawgrid_inputs,
+    .outputs         = drawgrid_outputs,
+    .flags           = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC
 };
 
 #endif  /* CONFIG_DRAWGRID_FILTER */

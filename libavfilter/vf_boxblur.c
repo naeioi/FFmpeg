@@ -262,6 +262,40 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
     return ff_filter_frame(outlink, out);
 }
 
+static int process_command(AVFilterContext *ctx, const char *cmd, const char *args,
+                           char *res, int res_len, int flags)
+{
+    BoxBlurContext *s = ctx->priv;
+    int ret;
+
+    if (   !strcmp(cmd, "luma_radius")   || !strcmp(cmd, "lr")
+        || !strcmp(cmd, "luma_power")    || !strcmp(cmd, "lp")
+        || !strcmp(cmd, "chroma_radius") || !strcmp(cmd, "cr")
+        || !strcmp(cmd, "chroma_power")  || !strcmp(cmd, "cp")
+        || !strcmp(cmd, "alpha_radius")  || !strcmp(cmd, "ar")
+        || !strcmp(cmd, "alpha_power")   || !strcmp(cmd, "ap")) {
+        
+        BoxBlurContext old_s = *s;
+        AVFilterLink *inlink = ctx->inputs[0];
+
+        s->alpha_param.power  = s->alpha_param.radius  = -1;
+        s->chroma_param.power = s->chroma_param.radius = -1;
+        s->luma_param.power   = s->luma_param.radius   = -1;
+        s->alpha_param.radius_expr = s->chroma_param.radius_expr = s->luma_param.radius_expr = NULL;
+
+        av_opt_set(s, cmd, args, 0);
+
+        if ((ret = config_input(inlink)) < 0) {
+            *s = old_s;
+            return ret;
+        }
+    }
+    else
+        ret = AVERROR(ENOSYS);
+
+    return ret;
+}
+
 #define OFFSET(x) offsetof(BoxBlurContext, x)
 #define FLAGS AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_FILTERING_PARAM
 
@@ -305,13 +339,14 @@ static const AVFilterPad avfilter_vf_boxblur_outputs[] = {
 };
 
 AVFilter ff_vf_boxblur = {
-    .name          = "boxblur",
-    .description   = NULL_IF_CONFIG_SMALL("Blur the input."),
-    .priv_size     = sizeof(BoxBlurContext),
-    .priv_class    = &boxblur_class,
-    .uninit        = uninit,
-    .query_formats = query_formats,
-    .inputs        = avfilter_vf_boxblur_inputs,
-    .outputs       = avfilter_vf_boxblur_outputs,
-    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC,
+    .name            = "boxblur",
+    .description     = NULL_IF_CONFIG_SMALL("Blur the input."),
+    .priv_size       = sizeof(BoxBlurContext),
+    .priv_class      = &boxblur_class,
+    .uninit          = uninit,
+    .query_formats   = query_formats,
+    .inputs          = avfilter_vf_boxblur_inputs,
+    .outputs         = avfilter_vf_boxblur_outputs,
+    .process_command = process_command,
+    .flags           = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC,
 };

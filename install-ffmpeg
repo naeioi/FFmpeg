@@ -1,0 +1,20 @@
+#!/bin/sh
+
+PATH="`pwd`:$PATH" ./configure \
+  --prefix="`pwd`/ffmpeg_build" \
+  --pkg-config-flags="--static" \
+  --extra-libs="-lpthread -lm" \
+  --bindir="`pwd`/bin" \
+  --enable-gpl \
+  --enable-libass \
+  --enable-libfdk-aac \
+  --enable-libfreetype \
+  --enable-libmp3lame \
+  --enable-libopus \
+  --enable-libvorbis \
+  --enable-libvpx \
+  --enable-libx264 \
+  --enable-libx265 \
+  --enable-libzmq \
+  --enable-nonfree && \
+PATH="`pwd`:$PATH"  make && make install
